@@ -1,42 +1,52 @@
 from flask import Blueprint, request, jsonify
 from werkzeug.security import check_password_hash
-from models import db, Employee, Users, Team, team_members
+from models import db, Employee, Users, Team
 from datetime import datetime
 
-routes = Blueprint('routes', __name__)
+routes = Blueprint("routes", __name__)
 
-# USER LOGIN
+# ----------------- USER LOGIN -----------------
 @routes.route("/login", methods=["POST"])
 def login():
     data = request.get_json()
-    user = Users.query.filter_by(email=data["email"]).first()
+    email = data.get("email")
+    password = data.get("password")
+
+    if not email or not password:
+        return jsonify({"error": "Email and password are required"}), 400
+
+    user = Users.query.filter_by(email=email).first()
     if not user:
         return jsonify({"error": "User not found"}), 404
-    if check_password_hash(user.password, data["password"]):
+
+    if check_password_hash(user.password, password):
         return jsonify({"message": "Login successful", "role": user.role})
+
     return jsonify({"error": "Invalid password"}), 401
 
-# EMPLOYEE CRUD
+# ----------------- EMPLOYEE CRUD -----------------
 @routes.route("/employees", methods=["GET"])
 def get_employees():
     all_employees = Employee.query.all()
-    return jsonify([{
-        "id": e.id,
-        "employee_id": e.employee_id,
-        "full_name": e.full_name,
-        "email": e.email,
-        "phone": e.phone,
-        "department": e.department,
-        "role": e.role,
-        "status": e.status
-    } for e in all_employees])
+    return jsonify([
+        {
+            "id": e.id,
+            "employee_id": e.employee_id,
+            "full_name": e.full_name,
+            "email": e.email,
+            "phone": e.phone,
+            "department": e.department,
+            "role": e.role,
+            "status": e.status
+        } for e in all_employees
+    ])
 
 @routes.route("/employees/<int:id>", methods=["GET"])
 def get_employee(id):
     emp = Employee.query.get(id)
     if not emp:
         return jsonify({"error": "Employee not found"}), 404
-    
+
     return jsonify({
         "id": emp.id,
         "employee_id": emp.employee_id,
@@ -63,7 +73,6 @@ def add_employee():
     data = request.get_json()
     if not data:
         return jsonify({"error": "No data provided"}), 400
-
     try:
         new_employee = Employee(
             employee_id=data.get("employeeId"),
@@ -88,7 +97,7 @@ def add_employee():
         db.session.commit()
         return jsonify({"message": "Employee added successfully!"}), 201
     except Exception as e:
-        print("Error:", e)
+        print("Error adding employee:", e)
         return jsonify({"error": "Failed to add employee"}), 500
 
 @routes.route("/employees/<int:id>", methods=["PUT"])
@@ -96,7 +105,7 @@ def update_employee(id):
     emp = Employee.query.get(id)
     if not emp:
         return jsonify({"error": "Employee not found"}), 404
-    
+
     data = request.get_json()
     emp.employee_id = data.get("employeeId", emp.employee_id)
     emp.full_name = data.get("fullName", emp.full_name)
@@ -128,7 +137,7 @@ def delete_employee(id):
     db.session.commit()
     return jsonify({"message": "Employee deleted successfully"})
 
-# TEAM ROUTES
+# ----------------- TEAM ROUTES -----------------
 @routes.route("/teams", methods=["POST"])
 def create_team():
     data = request.get_json()
@@ -139,7 +148,7 @@ def create_team():
 
     new_team = Team(name=team_name, project=project, lead_id=lead_id)
 
-    # Add members using many-to-many relationship
+    # Add members to the team
     for emp_id in member_ids:
         emp = Employee.query.get(emp_id)
         if emp:
@@ -148,7 +157,7 @@ def create_team():
     db.session.add(new_team)
     db.session.commit()
 
-    return {"message": "Team created successfully"}, 201
+    return jsonify({"message": "Team created successfully"}), 201
 
 @routes.route("/teams", methods=["GET"])
 def get_teams():

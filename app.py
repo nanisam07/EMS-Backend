@@ -1,28 +1,32 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify
 from flask_cors import CORS
 from models import db, Users
 from routes import routes
-from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.security import generate_password_hash
 from flask_migrate import Migrate
 import os
 
+# ----------------- Flask App -----------------
 app = Flask(__name__)
-CORS(app)  # Allow all origins. You can restrict later if needed
+CORS(app)  # Allow all origins for now
 
 # ----------------- DB Config -----------------
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'  # Or use PostgreSQL for production
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+# Use SQLite locally or switch to PostgreSQL in production
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///users.db"
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
 db.init_app(app)
 migrate = Migrate(app, db)
 
-# Register routes
+# ----------------- Register Blueprint -----------------
 app.register_blueprint(routes)
 
+# ----------------- Root Route -----------------
 @app.route("/")
 def home():
     return jsonify({"message": "Backend is live!"})
 
-# ----------------- Initialize Users -----------------
+# ----------------- Initialize Default Users -----------------
 def init_users():
     if not Users.query.first():
         users = [
@@ -34,19 +38,12 @@ def init_users():
             hashed = generate_password_hash(u["password"], method="pbkdf2:sha256")
             db.session.add(Users(email=u["email"], password=hashed, role=u["role"]))
         db.session.commit()
+        print("Default users initialized.")
 
-# ----------------- Login Route -----------------
-@routes.route("/login", methods=["POST"])
-def login():
-    data = request.get_json()
-    user = Users.query.filter_by(email=data.get("email")).first()
-    if user and check_password_hash(user.password, data.get("password")):
-        return jsonify({"role": user.role})
-    return jsonify({"error": "Invalid credentials"}), 401
-
+# ----------------- Main -----------------
 if __name__ == "__main__":
     with app.app_context():
-        db.create_all()
-        init_users()
+        db.create_all()  # Create tables if not exist
+        init_users()     # Insert default users
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=port, debug=True)
