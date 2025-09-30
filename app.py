@@ -8,11 +8,12 @@ import os
 
 # ----------------- Flask App -----------------
 app = Flask(__name__)
-CORS(app)  # Allow all origins for now
+CORS(app)  # Allow all origins; adjust for production
 
 # ----------------- DB Config -----------------
-# Use SQLite locally or switch to PostgreSQL in production
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///users.db"
+# SQLite for local/dev, PostgreSQL recommended for production
+DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///users.db")
+app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db.init_app(app)
@@ -42,8 +43,11 @@ def init_users():
 
 # ----------------- Main -----------------
 if __name__ == "__main__":
+    # Ensure tables and default users exist before starting server
     with app.app_context():
-        db.create_all()  # Create tables if not exist
-        init_users()     # Insert default users
-    port = int(os.environ.get("PORT", 5000))
+        db.create_all()
+        init_users()
+
+    # Use dynamic PORT for Render
+    port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port, debug=True)
