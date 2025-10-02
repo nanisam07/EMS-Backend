@@ -8,11 +8,11 @@ import os
 
 # ----------------- Flask App -----------------
 app = Flask(__name__)
-CORS(app)  # Allow all origins; adjust for production
+CORS(app)  
 
 # ----------------- DB Config -----------------
 # SQLite for local/dev, PostgreSQL recommended for production
-DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///users.db")
+DATABASE_URL = os.environ.get("DATABASE_URL")
 app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
