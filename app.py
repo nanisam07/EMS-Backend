@@ -6,28 +6,31 @@ from werkzeug.security import generate_password_hash
 from flask_migrate import Migrate
 import os
 
-# ----------------- Flask App -----------------
+#Flask App
 app = Flask(__name__)
 CORS(app)  
 
-# ----------------- DB Config -----------------
-# SQLite for local/dev, PostgreSQL recommended for production
-DATABASE_URL = os.environ.get("DATABASE_URL")
+#DB Config
+# # SQLite for local/dev, PostgreSQL recommended for production
+DATABASE_URL = "postgresql://employee_dashboard_7fts_user:FyWNtnAAL7byJnhtCgDOKEYNLNFRcM9H@dpg-d3f8a5pr0fns73dcmnq0-a.oregon-postgres.render.com/employee_dashboard_7fts"
+
 app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+print("🔗 Connected Database:", app.config["SQLALCHEMY_DATABASE_URI"])
+
 
 db.init_app(app)
 migrate = Migrate(app, db)
 
-# ----------------- Register Blueprint -----------------
+#Register Blueprint 
 app.register_blueprint(routes)
 
-# ----------------- Root Route -----------------
+# Root Route
 @app.route("/")
 def home():
     return jsonify({"message": "Backend is live!"})
 
-# ----------------- Initialize Default Users -----------------
+#Initialize Default Users
 def init_users():
     if not Users.query.first():
         users = [
@@ -41,7 +44,7 @@ def init_users():
         db.session.commit()
         print("Default users initialized.")
 
-# ----------------- Main -----------------
+#  Main 
 if __name__ == "__main__":
     # Ensure tables and default users exist before starting server
     with app.app_context():
